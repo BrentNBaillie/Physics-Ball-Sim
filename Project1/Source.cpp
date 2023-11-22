@@ -32,32 +32,59 @@ int y_collision(float radius, float height, float y)
 struct Ball
 {
     //Instantiates object variables
-    float ball_radius, y_Velocity, x_Velocity, y_Position, x_Position, gravity, time_Step, co_Restitution, collision_Offset;
+    float ball_radius, y_Velocity, x_Velocity, y_Position, x_Position, gravity, time_Step, co_Restitution, collision_Offset
+        , x_Origin, y_Origin, R, mass, G, x_Diff, y_Diff;
     Ball()
     {
         ball_radius = 3;
-        x_Position = 20;
-        y_Position = 400;
-        y_Velocity = 50;
-        x_Velocity = 50;
+        x_Position = 300;
+        y_Position = 500;
+        y_Velocity = 20;
+        x_Velocity = 0;
         gravity = -9.81;
         time_Step = 0.1;
-        co_Restitution = 0.8;
+        co_Restitution = 0.5;
         collision_Offset = 0;
+        mass = 100000;
+        
+        
     }
-
+    //Sets gravity point position to screen center
+    void Set_Origin(float width, float height) 
+    {
+        x_Origin = width / 2;
+        y_Origin = height / 2;
+    }
+    // Allows for cleaner equation below
+    void Diff() 
+    {
+        y_Diff = pow((y_Position - y_Origin), 2);
+        x_Diff = pow((x_Position - x_Origin), 2);
+    }
+    //Updates gravity along X-Axis
+    float x_gravity()
+    {
+        Diff();
+        return -1 * (mass * (x_Position - x_Origin)) / (pow((x_Diff + y_Diff), 0.5) * (x_Diff + y_Diff));
+    }
+    //Updates gravity along Y-Axis
+    float y_gravity()
+    {
+        Diff();
+        return -1 * (mass * (y_Position - y_Origin)) / (pow((x_Diff + y_Diff), 0.5) * (x_Diff + y_Diff));
+    }
     //Updates next X position
     float delta_x()
     {
-        x_Position = x_Position + (x_Velocity * time_Step);
+        x_Position = x_Position + (x_Velocity * time_Step) + (0.5 * x_gravity() * time_Step * time_Step);
+        x_Velocity = x_Velocity + (x_gravity() * time_Step);
         return x_Position;
     }
-
     //Updates next Y position
     float delta_y(float height)
     {
-        y_Position = y_Position + (y_Velocity * time_Step) + (0.5 * gravity * time_Step * time_Step);
-        y_Velocity = y_Velocity + (gravity * time_Step);
+        y_Position = y_Position + (y_Velocity * time_Step) + (0.5 * y_gravity() * time_Step * time_Step);
+        y_Velocity = y_Velocity + (y_gravity() * time_Step);
         return height - y_Position;
     }
 
@@ -112,14 +139,18 @@ int main() {
 
     //Creates ball object and set space size
     Ball ball;
-    float width = 500;
-    float height = 500;
+    float width = 1000;
+    float height = 1000;
     
     //Sets up the window for rendering the ball
     sf::RenderWindow window(sf::VideoMode(width, height), "Ball Physics");
-    sf::CircleShape point(ball.get_radius());
+    sf::CircleShape object(ball.get_radius());
+    sf::CircleShape point(5);
+    object.setFillColor(sf::Color::Red);
+    object.setPosition(ball.get_x(), ball.get_y(height));
     point.setFillColor(sf::Color::Red);
-    point.setPosition(ball.get_x(), ball.get_y(height));
+    point.setPosition(width/2,height/2);
+    ball.Set_Origin(width, height);
    
     //Renders each frame
     while (window.isOpen()) {
@@ -141,11 +172,12 @@ int main() {
             ball.x_collision_change(width);
         }
         
-        //Render ball
-        point.setPosition(ball.delta_x(), ball.delta_y(height));
+        //Sets new position
+        object.setPosition(ball.delta_x(), ball.delta_y(height));
         
-        //Clear window for new frame
+        //Clear window for new frame and renders ball
         window.clear();
+        window.draw(object);
         window.draw(point);
         window.display();
     }
